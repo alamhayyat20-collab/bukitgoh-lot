@@ -87,10 +87,13 @@ button{font:inherit;color:inherit;cursor:pointer}
 #lock.gone{display:none}
 .lk{max-width:360px;width:100%;text-align:center}
 .lk-n{font-size:9.5px;letter-spacing:.06em;color:#e0b56a;font-weight:700;margin-bottom:18px}
-.lk-i{width:84px;height:84px;border-radius:20px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.lk-logo{position:relative;width:132px;height:132px;margin:0 auto;border-radius:28px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.35);overflow:visible}
+.lk-logo img{width:132px;height:132px;border-radius:28px;display:block}
+.lk-pin{position:absolute;right:-10px;bottom:-6px;width:40px;height:40px;background:#1f4d2e;border:4px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+.lk-pin::after{content:"";position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#d9a441}
 .lk h1{font-size:24px;line-height:1.2;margin:14px 0 6px}
 .lk-s{font-size:13px;color:#cfe0d5;margin:0 0 18px}
-#lkc{width:100%;border:0;border-radius:12px;padding:13px 14px;font-size:17px;text-align:center;letter-spacing:.08em;color:#17231d;background:#fff}
+#lki,#lkc{width:100%;border:0;border-radius:12px;padding:13px 14px;font-size:17px;text-align:center;color:#17231d;background:#fff}
 .lk-r{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:#cfe0d5;margin:10px 0}
 #lkb{width:100%;border:0;border-radius:12px;padding:13px;font-size:16px;font-weight:800;background:#e0b56a;color:#12301f}
 #lkb:disabled{opacity:.6}
@@ -106,13 +109,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 <div id="lock">
   <div class="lk">
     <div class="lk-n">DI BAWAH NAUNGAN KEBAWAH DULI YANG MAHA MULIA SULTAN PAHANG</div>
-    <img src="icon-192.png" alt="" class="lk-i">
+    <div class="lk-logo"><img src="logo.jpg" alt="Alam Hayyat Group"><span class="lk-pin"></span></div>
     <h1>Carian Lot<br>FELDA Bukit Goh 2.0</h1>
     <p class="lk-s">Untuk kegunaan IGFWK dan syarikat usahasama sahaja. Data peneroka adalah SULIT.</p>
     <form id="lkf" autocomplete="off">
-      <input id="lkc" type="password" placeholder="Kod akses" autocapitalize="characters" spellcheck="false">
+      <input id="lki" type="text" placeholder="ID pengguna" autocapitalize="none" autocomplete="username" spellcheck="false">
+      <input id="lkc" type="password" placeholder="Kata laluan" autocomplete="current-password" spellcheck="false" style="margin-top:8px">
       <label class="lk-r"><input id="lkm" type="checkbox" checked> Ingat peranti ini</label>
-      <button id="lkb" type="submit">Buka</button>
+      <button id="lkb" type="submit">Log masuk</button>
     </form>
     <div id="lke"></div>
     <button id="lkinst" type="button" hidden>⤓ Pasang aplikasi</button>
@@ -224,7 +228,7 @@ function select(l){if(!l)return;sel=l;const sibs=l.nama?byName[l.nama]:[l];
   <div class="btns"><a class="btn p" ${ok?`href="https://www.google.com/maps/dir/?api=1&destination=${ll[0]},${ll[1]}&travelmode=driving" target="_blank" rel="noopener"`:'aria-disabled="true"'}>▶ Google Maps</a>
   <a class="btn w" ${ok?`href="https://waze.com/ul?ll=${ll[0]},${ll[1]}&navigate=yes" target="_blank" rel="noopener"`:'aria-disabled="true"'}>▶ Waze</a>
   <button class="btn" data-act="copy">Salin maklumat</button><button class="btn" data-act="back">← Senarai</button></div>
-  ${ok?(CAL.err>25?`<div class="note warn">Ketepatan kalibrasi ±${Math.round(CAL.err)} m. Tambah titik kalibrasi untuk navigasi lebih tepat.</div>`:`<div class="note">Navigasi ke titik label lot pada pelan (anggaran ±${Math.max(10,Math.round(CAL.err||0))} m). Sahkan sempadan di lapangan.</div>`)
+  ${ok?(CAL.err>60?`<div class="note warn">Ketepatan kalibrasi ±${Math.round(CAL.err)} m. Tambah titik kalibrasi untuk navigasi lebih tepat.</div>`:`<div class="note">Navigasi ke titik label lot pada pelan (anggaran ±${Math.max(10,Math.round(CAL.err||0))} m). Sahkan sempadan di lapangan.</div>`)
    :`<div class="note warn"><b>Navigasi GPS belum aktif.</b> Pelan ini belum dikalibrasi dengan koordinat GPS. Tekan ⚙ dan tandakan sekurang-kurangnya 3 titik yang dikenali. <a href="https://www.google.com/maps/search/?api=1&query=FELDA+Bukit+Goh+Kuantan" target="_blank" rel="noopener">Navigasi ke Perkampungan FELDA Bukit Goh</a></div>`}
   </div>`;
   sheetOpen(true);centerOn(l.x,l.y,Math.max(sc,1.2))}
@@ -242,7 +246,7 @@ function solve(A,b){const n=A[0].length,M=A.map((r,i)=>[...r,b[i]]);
 function fitCal(){const p=CAL.pts;CAL.A=null;CAL.err=null;if(p.length<3)return;
   const A=p.map(q=>[q.x,q.y,1]);const a=solve(A,p.map(q=>q.lat)),b=solve(A,p.map(q=>q.lng));if(!a||!b)return;
   CAL.A=[a,b];const det=a[0]*b[1]-a[1]*b[0];if(Math.abs(det)<1e-20){CAL.A=null;return}
-  CAL.err=p.length>3?Math.sqrt(p.reduce((s,q)=>{const g=geo(q.x,q.y);return s+dist(g,[q.lat,q.lng])**2},0)/(p.length-3)):null}
+  CAL.err=p.length>3?Math.sqrt(p.reduce((s,q)=>{const g=geo(q.x,q.y);return s+dist(g,[q.lat,q.lng])**2},0)/p.length):null}
 function geo(x,y){if(!CAL.A)return null;const[a,b]=CAL.A;return[a[0]*x+a[1]*y+a[2],b[0]*x+b[1]*y+b[2]]}
 function ungeo(lat,lng){if(!CAL.A)return null;const[a,b]=CAL.A;const d=a[0]*b[1]-a[1]*b[0];const u=lat-a[2],v=lng-b[2];return[(u*b[1]-a[1]*v)/d,(a[0]*v-u*b[0])/d]}
 function dist(p,q){const R=6371000,r=Math.PI/180,dl=(q[0]-p[0])*r,dg=(q[1]-p[1])*r;const h=Math.sin(dl/2)**2+Math.cos(p[0]*r)*Math.cos(q[0]*r)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
@@ -271,7 +275,7 @@ function calMenu(){const p=CAL.pts;dlg(`<h3>Kalibrasi GPS pelan</h3>
   <div class="note ${CAL.A?'':'warn'}">${CAL.A?(CAL.err!=null?`Aktif · anggaran ralat ±${Math.round(CAL.err)} m`:'Aktif (3 titik, ralat belum dapat dianggar. Tambah titik ke-4 untuk semakan.)'):`Belum aktif · perlu ${Math.max(0,3-p.length)} titik lagi`}</div>
   <div class="btns"><button class="btn p" data-c="add">+ Tanda titik</button><button class="btn" data-c="close">Tutup</button>
   <button class="btn" data-c="exp">Eksport kod</button><button class="btn" data-c="imp">Import kod</button></div>
-  <button class="btn" style="width:100%;margin-top:8px;color:#b23c17" onclick="bgForget()">🔒 Kunci aplikasi &amp; lupakan peranti ini</button><p style="font-size:12px;color:var(--muted);margin:10px 0 0">Kalibrasi disimpan dalam pelayar peranti ini sahaja. Guna "Eksport kod" untuk berkongsi dengan pasukan lain.</p>`);
+  ${window.BG_ROLE==='admin'?'<button class="btn p" style="width:100%;margin-top:8px;background:#b08a3e;color:#12301f" onclick="bgAdmin()">👤 Pengurusan pengguna (Admin)</button>':''}<button class="btn" style="width:100%;margin-top:8px;color:#b23c17" onclick="bgForget()">🔒 Log keluar &amp; lupakan peranti ini</button><p style="font-size:12px;color:var(--muted);margin:10px 0 0">Kalibrasi disimpan dalam pelayar peranti ini sahaja. Guna "Eksport kod" untuk berkongsi dengan pasukan lain.</p>`);
   $('dlgbox').onclick=e=>{const d=e.target.dataset;
     if(d.del!==undefined){CAL.pts.splice(+d.del,1);save();calMenu()}
     if(d.c==='close')closeDlg();
@@ -290,46 +294,137 @@ function calPoint(x,y){CAL.pts.push({x,y,lat:NaN,lng:NaN});drawMarks();const i=C
   $('llNo').onclick=()=>{CAL.pts.splice(i,1);closeDlg();drawMarks()}}
 // ---------- mula ----------
 window.addEventListener('resize',()=>drawMarks());
-$('img').onload=fit;$('img').src=P.img;fit();search();sheetOpen(false);window.calMenu=calMenu;window.toast=toast;$('ver').textContent='Data '+P.ver;
+$('img').onload=fit;$('img').src=P.img;fit();search();sheetOpen(false);window.calMenu=calMenu;window.toast=toast;
 const h=decodeURIComponent(location.hash.slice(1));if(h&&byLot[h])select(byLot[h]);
 }
 </script>
 <script>
 (function(){
 const $=id=>document.getElementById(id);
+const te=new TextEncoder(),td=new TextDecoder();
+const b64=u=>{const a=new Uint8Array(u);let s='';for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)};
+const ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+const cat=(...a)=>{const o=new Uint8Array(a.reduce((s,x)=>s+x.length,0));let p=0;a.forEach(x=>{o.set(x,p);p+=x.length});return o};
+const normId=s=>(s||'').trim().toLowerCase();
+const sha=async s=>b64(await crypto.subtle.digest('SHA-256',te.encode(s)));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
-// --- pasang ---
+// ---------- pasang ----------
 let deferred=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('lkinst').hidden=false});
 $('lkinst').onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$('lkinst').hidden=true};
 const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
 if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!standalone)$('lkios').hidden=false;
-// --- simpanan kunci (CryptoKey tidak boleh dieksport) ---
-function idb(){return new Promise((ok,no)=>{const r=indexedDB.open('bglot',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
-async function kget(){try{const db=await idb();return await new Promise(ok=>{const q=db.transaction('k').objectStore('k').get('key');q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null)})}catch(e){return null}}
-async function kput(v){try{const db=await idb();await new Promise(ok=>{const t=db.transaction('k','readwrite');v?t.objectStore('k').put(v,'key'):t.objectStore('k').delete('key');t.oncomplete=ok;t.onerror=ok})}catch(e){}}
+// ---------- simpanan peranti ----------
+function idb(){return new Promise((ok,no)=>{const r=indexedDB.open('bglot',2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('k'))r.result.createObjectStore('k')};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
+async function kget(){try{const db=await idb();return await new Promise(ok=>{const q=db.transaction('k').objectStore('k').get('sess');q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null)})}catch(e){return null}}
+async function kput(v){try{const db=await idb();await new Promise(ok=>{const t=db.transaction('k','readwrite');v?t.objectStore('k').put(v,'sess'):t.objectStore('k').delete('sess');t.oncomplete=ok;t.onerror=ok})}catch(e){}}
 window.bgForget=async()=>{await kput(null);location.reload()};
-// --- data ---
+// ---------- kripto ----------
+async function kek(id,pw,salt){const k=await crypto.subtle.importKey('raw',te.encode(normId(id)+'\n'+pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:600000,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['wrapKey','unwrapKey'])}
+async function enc(key,bytes){const iv=rnd(12);return cat(iv,new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,bytes)))}
+async function dec(key,blob){return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:blob.slice(0,12)},key,blob.slice(12)))}
+async function makeEntry(dek,meta,pw){const salt=rnd(16),k=await kek(meta.id,pw,salt),iv=rnd(12);
+  const w=new Uint8Array(await crypto.subtle.wrapKey('raw',dek,k,{name:'AES-GCM',iv}));
+  return{h:await sha(normId(meta.id)),s:b64(salt),w:b64(cat(iv,w)),m:b64(await enc(dek,te.encode(JSON.stringify(meta))))}}
+async function readMeta(dek,e){return JSON.parse(td.decode(await dec(dek,ub64(e.m))))}
+// ---------- data ----------
+async function getKeys(){let r=null;try{r=await fetch('keys.json',{cache:'no-store'})}catch(e){}
+  if(!r||!r.ok){try{r=await caches.match('keys.json',{ignoreSearch:true})}catch(e){r=null}}
+  if(!r)throw new Error('Senarai pengguna tidak dapat dimuat. Sambung ke internet dan cuba lagi.');return r.json()}
 let BUF=null;
-async function blob(){if(BUF)return BUF;let r=await fetch('data.bin').catch(()=>null);
-  if(r&&r.ok&&!(r.headers.get('content-type')||'').includes('html')){BUF=new Uint8Array(await r.arrayBuffer())}
-  else{r=await fetch('data.txt');if(!r.ok)throw new Error('Data tidak dapat dimuat ('+r.status+')');const t=(await r.text()).trim();BUF=Uint8Array.from(atob(t),c=>c.charCodeAt(0))}
-  if(String.fromCharCode(...BUF.slice(0,4))!=='BG01')throw new Error('Fail data tidak sah');return BUF}
-async function derive(code,salt){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(code),'PBKDF2',false,['deriveKey']);
-  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:600000,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['decrypt'])}
-async function open_(key){const b=await blob();const pt=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(20,32)},key,b.slice(32)));
-  const n=new DataView(pt.buffer).getUint32(0);const P=JSON.parse(new TextDecoder().decode(pt.slice(4,4+n)));
-  P.img=URL.createObjectURL(new Blob([pt.slice(4+n)],{type:'image/jpeg'}));return P}
-function go(P){$('lock').classList.add('gone');start(P)}
-$('lkf').onsubmit=async e=>{e.preventDefault();const code=$('lkc').value.trim().toUpperCase();if(!code)return;
-  $('lkb').disabled=true;$('lkb').textContent='Membuka…';$('lke').textContent='';
+async function getData(){if(BUF)return BUF;const r=await fetch('data.txt');if(!r.ok)throw new Error('Data tidak dapat dimuat ('+r.status+')');
+  BUF=ub64((await r.text()).trim());if(td.decode(BUF.slice(0,4))!=='BG02')throw new Error('Fail data versi lama. Muat naik data.txt terkini.');return BUF}
+async function openData(dek){const pt=await dec(dek,(await getData()).slice(4));const n=new DataView(pt.buffer).getUint32(0);
+  const P=JSON.parse(td.decode(pt.slice(4,4+n)));P.img=URL.createObjectURL(new Blob([pt.slice(4+n)],{type:'image/jpeg'}));return{P,pt}}
+async function enter(dek,keys,meta){const {P,pt}=await openData(dek);
+  window.BG={dek,keys,meta,role:meta.role,pt:meta.role==='admin'?pt:null};window.BG_ROLE=meta.role;
+  $('lock').classList.add('gone');start(P);const u=$('ver');if(u)u.textContent=meta.id+' · '+(meta.role==='admin'?'Admin':'Pengguna')+' · data '+P.ver}
+// ---------- log masuk ----------
+const busy=(on,t)=>{$('lkb').disabled=on;$('lkb').textContent=on?(t||'Membuka…'):'Log masuk'};
+$('lkf').onsubmit=async e=>{e.preventDefault();const id=$('lki').value,pw=$('lkc').value.trim();if(!id.trim()||!pw)return;
+  busy(true);$('lke').textContent='';
   try{if(!crypto.subtle)throw new Error('Pelayar ini tidak menyokong penyulitan. Buka melalui pautan https.');
-    const b=await blob();const key=await derive(code,b.slice(4,20));let P;
-    try{P=await open_(key)}catch(x){throw new Error('Kod akses tidak sah')}
-    if($('lkm').checked)await kput(key);go(P)}
-  catch(x){$('lke').textContent=x.message;$('lkb').disabled=false;$('lkb').textContent='Buka'}};
-(async()=>{const k=await kget();if(!k)return;$('lkb').disabled=true;$('lkb').textContent='Membuka…';
-  try{go(await open_(k))}catch(x){await kput(null);$('lkb').disabled=false;$('lkb').textContent='Buka';$('lke').textContent='Data telah dikemas kini. Sila masukkan kod akses.'}})();
+    const keys=await getKeys();const h=await sha(normId(id));const u=keys.users.find(x=>x.h===h);if(!u)throw new Error('ID pengguna atau kata laluan salah');
+    let dek;try{const w=ub64(u.w);dek=await crypto.subtle.unwrapKey('raw',w.slice(12),await kek(id,pw,ub64(u.s)),{name:'AES-GCM',iv:w.slice(0,12)},{name:'AES-GCM'},true,['encrypt','decrypt'])}
+    catch(x){throw new Error('ID pengguna atau kata laluan salah')}
+    const meta=await readMeta(dek,u);if($('lkm').checked)await kput({dek,h});await enter(dek,keys,meta)}
+  catch(x){$('lke').textContent=x.message;busy(false)}};
+(async()=>{const s=await kget();if(!s)return;busy(true);
+  try{const keys=await getKeys();const u=keys.users.find(x=>x.h===s.h);
+    if(!u){await kput(null);throw new Error('Akses peranti ini telah ditarik balik oleh admin.')}
+    await enter(s.dek,keys,await readMeta(s.dek,u))}
+  catch(x){await kput(null);busy(false);$('lke').textContent=/OperationError/.test(x.name)?'Kunci telah ditukar oleh admin. Sila log masuk semula.':x.message}})();
+// ---------- pentadbir ----------
+const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const genPw=()=>{const g=()=>Array.from(rnd(5),b=>A[b%A.length]).join('');return 'BG-'+g()+'-'+g()};
+let U=null,NEW=[];
+function box(h){$('dlgbox').innerHTML=h;$('dlg').style.display='flex'}
+function close(){$('dlg').style.display='none'}
+function tst(t){if(window.toast)window.toast(t)}
+async function load(){U=[];for(const e of BG.keys.users){let m;try{m=await readMeta(BG.dek,e)}catch(x){m={id:'(tidak dapat dibaca)',nama:'',role:'?'}}U.push({e,m})}NEW=[]}
+window.bgAdmin=async()=>{if(BG.role!=='admin')return;if(!U)await load();render()};
+function render(){const me=normId(BG.meta.id);
+  box(`<h3>Pengurusan pengguna</h3>
+  <p style="font-size:13px;margin:0 0 8px;color:var(--muted)">Tambah, padam atau tukar ID dan kata laluan. Perubahan hanya berkuat kuasa selepas fail <b>keys.json</b> baharu dimuat naik ke GitHub.</p>
+  ${U.map((u,i)=>`<div class="cpl"><span><b>${esc(u.m.id)}</b>${u.m.nama?' · '+esc(u.m.nama):''} <span class="zb" style="background:${u.m.role==='admin'?'#b08a3e':'#1f5a3d'}">${u.m.role==='admin'?'Admin':'Pengguna'}</span>${u.dirty?' <i style="color:#c25b14">· diubah</i>':''}</span>
+    <span style="white-space:nowrap"><button data-ed="${i}" style="color:var(--leaf)">Ubah</button>${normId(u.m.id)===me?'':`<button data-del="${i}">Padam</button>`}</span></div>`).join('')}
+  <div class="btns"><button class="btn p" data-a="add">+ Pengguna baharu</button><button class="btn" data-a="close">Tutup</button></div>
+  <button class="btn p" style="width:100%;margin-top:8px;background:#b08a3e;color:#12301f" data-a="save">Jana keys.json${NEW.length||U.some(u=>u.dirty)||U.removed?' (ada perubahan)':''}</button>
+  <details style="margin-top:12px;font-size:13px"><summary style="cursor:pointer;color:var(--muted)">Lanjutan: sekat penuh</summary>
+  <p style="margin:6px 0">Memadam pengguna menghalang log masuk baharu. Tetapi telefon yang pernah membuka aplikasi masih menyimpan kunci data. Untuk menyekat sepenuhnya, tukar kunci data: semua pengguna akan diberi kata laluan baharu dan perlu log masuk semula.</p>
+  <button class="btn" style="width:100%;color:#b23c17" data-a="rekey">Tukar kunci data &amp; semua kata laluan</button></details>`);
+  $('dlgbox').onclick=async e=>{const d=e.target.dataset;
+    if(d.a==='close')close();if(d.a==='add')form(null);if(d.ed!==undefined)form(+d.ed);
+    if(d.del!==undefined){const u=U[+d.del];if(u.m.role==='admin'&&U.filter(x=>x.m.role==='admin').length<2){tst('Mesti ada sekurang-kurangnya seorang admin');return}
+      U.splice(+d.del,1);U.removed=true;render()}
+    if(d.a==='save')save();if(d.a==='rekey')rekeyAsk()}}
+function form(i){const u=i===null?null:U[i];const pw=genPw();
+  box(`<h3>${u?'Ubah pengguna':'Pengguna baharu'}</h3>
+  <label style="font-size:12.5px;color:var(--muted)">ID log masuk</label><input id="fId" value="${u?esc(u.m.id):''}" placeholder="cth. liannex01" autocapitalize="none">
+  <label style="font-size:12.5px;color:var(--muted);display:block;margin-top:8px">Nama / organisasi</label><input id="fNm" value="${u?esc(u.m.nama||''):''}" placeholder="cth. Liannex – Encik Ali">
+  <label style="font-size:12.5px;color:var(--muted);display:block;margin-top:8px">Peranan</label>
+  <select id="fRl" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;font-size:15px;background:var(--bg);color:var(--ink)"><option value="user">Pengguna (carian &amp; navigasi)</option><option value="admin"${u&&u.m.role==='admin'?' selected':''}>Admin (urus pengguna)</option></select>
+  <label style="font-size:12.5px;color:var(--muted);display:block;margin-top:8px">Kata laluan ${u?'baharu':''}</label><input id="fPw" value="${pw}" style="font-family:ui-monospace,monospace">
+  <p style="font-size:12px;color:var(--muted);margin:6px 0 0">Kata laluan dijana secara rawak. Tuan boleh menukarnya (sekurang-kurangnya 8 aksara). ${u?'Setiap perubahan pada ID memerlukan kata laluan baharu.':''}</p>
+  <div class="btns"><button class="btn p" id="fOk">Simpan</button><button class="btn" id="fNo">Batal</button></div>`);
+  $('fNo').onclick=render;
+  $('fOk').onclick=async()=>{const id=$('fId').value.trim(),nm=$('fNm').value.trim(),rl=$('fRl').value,p=$('fPw').value.trim();
+    if(!/^[A-Za-z0-9._@-]{3,40}$/.test(id)){tst('ID: 3–40 aksara (huruf, nombor, . _ - @)');return}
+    if(p.length<8){tst('Kata laluan sekurang-kurangnya 8 aksara');return}
+    const h=await sha(normId(id));if(U.some((x,j)=>j!==i&&x.e.h===h)){tst('ID ini sudah wujud');return}
+    if(u&&u.m.role==='admin'&&rl!=='admin'&&U.filter(x=>x.m.role==='admin').length<2){tst('Mesti ada sekurang-kurangnya seorang admin');return}
+    $('fOk').disabled=true;$('fOk').textContent='Menyulitkan…';
+    const m={id,nama:nm,role:rl};const e=await makeEntry(BG.dek,m,p);
+    if(u){if(normId(u.m.id)===normId(BG.meta.id))BG.selfChanged=true;U[i]={e,m,dirty:true}}else U.push({e,m,dirty:true});
+    NEW=NEW.filter(x=>normId(x.id)!==normId(id)&&(!u||normId(x.id)!==normId(u.m.id)));NEW.push({id,nama:nm,role:rl,pw:p});render()}}
+function dl(name,text){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/octet-stream'}));a.download=name;document.body.appendChild(a);a.click();a.remove()}catch(e){tst('Muat turun tidak disokong di sini')}}
+function cp(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>tst('Disalin'),()=>tst('Salin secara manual'))}
+function creds(){return NEW.length?`<h4 style="margin:12px 0 4px">Maklumat log masuk untuk diedarkan</h4><p style="font-size:12px;color:#b23c17;margin:0 0 6px">Kata laluan hanya dipaparkan sekali. Salin dan hantar kepada setiap pengguna secara peribadi.</p>
+  <textarea id="cr" readonly style="height:${40+NEW.length*20}px">${esc(NEW.map(n=>`${n.nama||n.id} (${n.role==='admin'?'Admin':'Pengguna'})\nID: ${n.id}\nKata laluan: ${n.pw}\n`).join('\n'))}</textarea><button class="btn" style="width:100%;margin-top:6px" onclick="(${cp.toString()})(document.getElementById('cr').value)">Salin maklumat log masuk</button>`:''}
+function save(){const json=JSON.stringify({v:2,updated:new Date().toISOString(),users:U.map(u=>u.e)});BG.lastKeys=json;
+  box(`<h3>keys.json baharu sedia</h3>
+  <ol style="font-size:13px;padding-left:18px;margin:0 0 8px"><li>Tekan <b>Muat turun keys.json</b> (atau Salin).</li>
+  <li>Di GitHub, buka repo <b>bukitgoh-lot</b> → fail <b>keys.json</b> → ikon ✏️ <b>Edit</b> → padam semua → tampal → <b>Commit changes</b>. Atau ganti fail dalam folder repo melalui GitHub Desktop → Commit → Push.</li>
+  <li>Dalam 1–2 minit, perubahan berkuat kuasa untuk semua pengguna.</li></ol>
+  <div class="btns"><button class="btn p" id="sDl">Muat turun keys.json</button><button class="btn" id="sCp">Salin teks</button></div>
+  ${creds()}
+  <button class="btn" style="width:100%;margin-top:10px" id="sBk">← Kembali</button>`);
+  $('sDl').onclick=()=>dl('keys.json',json);$('sCp').onclick=()=>cp(json);$('sBk').onclick=render}
+function rekeyAsk(){box(`<h3>Tukar kunci data?</h3><p style="font-size:13.5px">Semua ${U.length} pengguna (termasuk tuan) akan diberi <b>kata laluan baharu</b>. Peranti yang pernah membuka aplikasi tidak lagi boleh membaca data selepas fail baharu dimuat naik. Tuan perlu memuat naik <b>dua fail</b>: data.txt dan keys.json.</p>
+  <div class="btns"><button class="btn p" style="background:#b23c17" id="rkGo">Teruskan</button><button class="btn" id="rkNo">Batal</button></div>`);
+  $('rkNo').onclick=render;$('rkGo').onclick=rekey}
+async function rekey(){if(!BG.pt){tst('Hanya admin');return}$('rkGo').disabled=true;$('rkGo').textContent='Menyulitkan semula…';
+  const dek=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+  const data=b64(cat(te.encode('BG02'),await enc(dek,BG.pt)));NEW=[];const nu=[];
+  for(const u of U){const p=genPw();nu.push({e:await makeEntry(dek,u.m,p),m:u.m});NEW.push({...u.m,pw:p})}
+  U=nu;BG.dek=dek;const json=JSON.stringify({v:2,updated:new Date().toISOString(),users:U.map(u=>u.e)});
+  box(`<h3>Kunci data baharu sedia</h3><p style="font-size:13px">Muat turun kedua-dua fail dan gantikan dalam repo GitHub (GitHub Desktop → Commit → Push). Selepas itu, edarkan kata laluan baharu.</p>
+  <div class="btns"><button class="btn p" id="r1">Muat turun data.txt</button><button class="btn p" id="r2">Muat turun keys.json</button></div>${creds()}
+  <button class="btn" style="width:100%;margin-top:10px" onclick="document.getElementById('dlg').style.display='none'">Tutup</button>`);
+  $('r1').onclick=()=>dl('data.txt',data);$('r2').onclick=()=>dl('keys.json',json)}
 })();
 
 </script>
