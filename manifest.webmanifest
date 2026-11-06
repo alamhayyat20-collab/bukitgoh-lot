@@ -1,0 +1,26 @@
+{
+ "name": "Carian Lot FELDA Bukit Goh",
+ "short_name": "Lot Bukit Goh",
+ "description": "Carian lot dan navigasi FELDA Bukit Goh 2.0 · IGFWK",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "any",
+ "background_color": "#12301f",
+ "theme_color": "#12301f",
+ "lang": "ms",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any maskable"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
+}
