@@ -86,11 +86,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 #lock{position:fixed;inset:0;z-index:100;background:radial-gradient(120% 80% at 50% 0%,#1f5a3d 0%,#12301f 60%);color:#fff;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
 #lock.gone{display:none}
 .lk{max-width:360px;width:100%;text-align:center}
-.lk-n{font-size:9.5px;letter-spacing:.06em;color:#e0b56a;font-weight:700;margin-bottom:18px}
-.lk-logo{position:relative;width:132px;height:132px;margin:0 auto;border-radius:28px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.35);overflow:visible}
-.lk-logo img{width:132px;height:132px;border-radius:28px;display:block}
-.lk-pin{position:absolute;right:-10px;bottom:-6px;width:40px;height:40px;background:#1f4d2e;border:4px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
-.lk-pin::after{content:"";position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#d9a441}
+.lk-n{font-size:13px;letter-spacing:.18em;color:#e0b56a;font-weight:700;margin-bottom:18px}
+.lk-hero{width:190px;height:190px;display:block;margin:0 auto;border-radius:34px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .lk h1{font-size:24px;line-height:1.2;margin:14px 0 6px}
 .lk-s{font-size:13px;color:#cfe0d5;margin:0 0 18px}
 #lki,#lkc{width:100%;border:0;border-radius:12px;padding:13px 14px;font-size:17px;text-align:center;color:#17231d;background:#fff}
@@ -103,18 +100,23 @@ button{font:inherit;color:inherit;cursor:pointer}
 .lk-f{font-size:11px;color:#9fbfac;margin-top:26px}
 #ver{font-size:10px;color:var(--muted)}
 
+.lk-pw{position:relative;margin-top:8px}
+.lk-pw #lkc{padding-left:52px;padding-right:52px}
+#lkeye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#lkeye:active{background:#eef3ef}
+
 </style>
 </head>
 <body>
 <div id="lock">
   <div class="lk">
-    <div class="lk-n">DI BAWAH NAUNGAN KEBAWAH DULI YANG MAHA MULIA SULTAN PAHANG</div>
-    <div class="lk-logo"><img src="logo.jpg" alt="Alam Hayyat Group"><span class="lk-pin"></span></div>
+    <div class="lk-n">THE KEY · BKTGOH 2.0</div>
+    <img class="lk-hero" src="logo.jpg" alt="Carian Lot FELDA Bukit Goh · Alam Hayyat Group">
     <h1>Carian Lot<br>FELDA Bukit Goh 2.0</h1>
     <p class="lk-s">Untuk kegunaan IGFWK dan syarikat usahasama sahaja. Data peneroka adalah SULIT.</p>
     <form id="lkf" autocomplete="off">
       <input id="lki" type="text" placeholder="ID pengguna" autocapitalize="none" autocomplete="username" spellcheck="false">
-      <input id="lkc" type="password" placeholder="Kata laluan" autocomplete="current-password" spellcheck="false" style="margin-top:8px">
+      <div class="lk-pw"><input id="lkc" type="password" placeholder="Kata laluan" autocomplete="current-password" spellcheck="false"><button type="button" id="lkeye" aria-label="Tunjuk kata laluan" title="Tunjuk / sembunyi kata laluan"><svg id="eyeOn" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1f4d2e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg id="eyeOff" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1f4d2e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.9 17.9A10.8 10.8 0 0 1 12 19c-7 0-11-7-11-7a19.8 19.8 0 0 1 5.1-5.9M9.9 4.2A10.4 10.4 0 0 1 12 4c7 0 11 7 11 7a19.9 19.9 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M1 1l22 22"/></svg></button></div>
       <label class="lk-r"><input id="lkm" type="checkbox" checked> Ingat peranti ini</label>
       <button id="lkb" type="submit">Log masuk</button>
     </form>
@@ -127,7 +129,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 <div id="map"><div id="layer"><img id="img" alt="Pelan Rancangan FELDA Bukit Goh" src=""><svg id="zsvg"></svg></div><div id="marks"></div></div>
 <div id="top">
-  <div id="naung">DI BAWAH NAUNGAN KEBAWAH DULI YANG MAHA MULIA SULTAN PAHANG</div>
+  <div id="naung">THE KEY · BKTGOH 2.0</div>
   <div id="brand"><b>Carian Lot · FELDA Bukit Goh 2.0</b><span style="text-align:right">SULIT · IGFWK<br><i id="ver" style="font-style:normal;font-weight:400;color:#cfe0d5"></i></span></div>
   <div id="sbox"><input id="q" type="search" placeholder="Cari nombor lot atau nama peneroka…" autocomplete="off" enterkeyhint="search"><button id="gpsBtn" title="Lokasi saya">◎ Saya</button><button id="calBtn" title="Tetapan">⚙</button></div>
   <div id="chips"></div>
@@ -316,6 +318,7 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;
 $('lkinst').onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$('lkinst').hidden=true};
 const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
 if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!standalone)$('lkios').hidden=false;
+$('lkeye').onclick=()=>{const i=$('lkc'),show=i.type==='password';i.type=show?'text':'password';$('eyeOn').style.display=show?'none':'';$('eyeOff').style.display=show?'':'none';$('lkeye').setAttribute('aria-label',show?'Sembunyi kata laluan':'Tunjuk kata laluan');i.focus()};
 // ---------- simpanan peranti ----------
 function idb(){return new Promise((ok,no)=>{const r=indexedDB.open('bglot',2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('k'))r.result.createObjectStore('k')};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
 async function kget(){try{const db=await idb();return await new Promise(ok=>{const q=db.transaction('k').objectStore('k').get('sess');q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null)})}catch(e){return null}}
