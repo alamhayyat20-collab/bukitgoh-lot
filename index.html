@@ -334,9 +334,39 @@ async function makeEntry(dek,meta,pw){const salt=rnd(16),k=await kek(meta.id,pw,
   return{h:await sha(normId(meta.id)),s:b64(salt),w:b64(cat(iv,w)),m:b64(await enc(dek,te.encode(JSON.stringify(meta))))}}
 async function readMeta(dek,e){return JSON.parse(td.decode(await dec(dek,ub64(e.m))))}
 // ---------- data ----------
-async function getKeys(){let r=null;try{r=await fetch('keys.json',{cache:'no-store'})}catch(e){}
-  if(!r||!r.ok){try{r=await caches.match('keys.json',{ignoreSearch:true})}catch(e){r=null}}
+// ---------- Firebase (pilihan): senarai pengguna dalam Firestore, dikemas kini terus oleh admin ----------
+let FBC;
+async function fbConf(){if(FBC!==undefined)return FBC;try{const r=await fetch('firebase.json',{cache:'no-store'});FBC=r.ok?await r.json():null}catch(e){FBC=null}
+  if(FBC&&!(FBC.projectId&&FBC.apiKey))FBC=null;return FBC}
+const fsUrl=c=>`https://firestore.googleapis.com/v1/projects/${c.projectId}/databases/(default)/documents/config/keys`;
+const lsGet=()=>{try{return JSON.parse(localStorage.getItem('bg_keys')||'null')}catch(e){return null}};
+const lsPut=j=>{try{localStorage.setItem('bg_keys',JSON.stringify(j))}catch(e){}};
+async function getKeys(){const c=await fbConf();
+  if(c){try{const r=await fetch(fsUrl(c)+'?key='+encodeURIComponent(c.apiKey),{cache:'no-store'});
+      if(r.ok){const d=await r.json();const j=JSON.parse(d.fields.json.stringValue);lsPut(j);j._src='firebase';return j}}catch(e){}}
+  let r=null;try{r=await fetch('keys.json',{cache:'no-store'})}catch(e){}
+  if(r&&r.ok){const j=await r.json();const l=lsGet();if(c&&l&&l.updated>j.updated)return l;return j}
+  const l=lsGet();if(l)return l;
+  try{r=await caches.match('keys.json',{ignoreSearch:true})}catch(e){r=null}
   if(!r)throw new Error('Senarai pengguna tidak dapat dimuat. Sambung ke internet dan cuba lagi.');return r.json()}
+async function fbLogin(){const c=await fbConf();if(BG.fbTok&&BG.fbExp>Date.now())return BG.fbTok;
+  return new Promise((ok,no)=>{let em='';try{em=localStorage.getItem('bg_fbmail')||''}catch(e){}
+    box(`<h3>Sahkan admin Firebase</h3><p style="font-size:13px;margin:0 0 8px;color:var(--muted)">Masukkan e-mel dan kata laluan akaun admin Firebase (bukan kata laluan aplikasi). Diminta sekali bagi setiap sesi.</p>
+    <input id="fbE" type="email" placeholder="E-mel admin" value="${esc(em)}" autocapitalize="none"><input id="fbP" type="password" placeholder="Kata laluan Firebase" style="margin-top:6px">
+    <div class="btns"><button class="btn p" id="fbOk">Sahkan</button><button class="btn" id="fbNo">Batal</button></div>`);
+    $('fbNo').onclick=()=>{render();no(new Error('batal'))};
+    $('fbOk').onclick=async()=>{$('fbOk').disabled=true;$('fbOk').textContent='Mengesahkan…';
+      try{const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+encodeURIComponent(c.apiKey),{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({email:$('fbE').value.trim(),password:$('fbP').value,returnSecureToken:true})});const d=await r.json();
+        if(!r.ok)throw new Error(d.error&&d.error.message||'gagal');
+        try{localStorage.setItem('bg_fbmail',$('fbE').value.trim())}catch(e){}
+        BG.fbTok=d.idToken;BG.fbExp=Date.now()+(+d.expiresIn-60)*1000;ok(d.idToken)}
+      catch(x){$('fbOk').disabled=false;$('fbOk').textContent='Sahkan';tst('Log masuk Firebase gagal: '+x.message)}}})}
+async function fbSave(json){const c=await fbConf();const tok=await fbLogin();
+  const r=await fetch(fsUrl(c)+'?key='+encodeURIComponent(c.apiKey),{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},
+    body:JSON.stringify({fields:{json:{stringValue:json},updated:{timestampValue:new Date().toISOString()}}})});
+  if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401||r.status===403)BG.fbTok=null;throw new Error((d.error&&d.error.message)||('HTTP '+r.status))}
+  lsPut(JSON.parse(json));BG.keys=JSON.parse(json)}
 let BUF=null;
 async function getData(){if(BUF)return BUF;const r=await fetch('data.txt');if(!r.ok)throw new Error('Data tidak dapat dimuat ('+r.status+')');
   BUF=ub64((await r.text()).trim());if(td.decode(BUF.slice(0,4))!=='BG02')throw new Error('Fail data versi lama. Muat naik data.txt terkini.');return BUF}
@@ -368,14 +398,14 @@ function box(h){$('dlgbox').innerHTML=h;$('dlg').style.display='flex'}
 function close(){$('dlg').style.display='none'}
 function tst(t){if(window.toast)window.toast(t)}
 async function load(){U=[];for(const e of BG.keys.users){let m;try{m=await readMeta(BG.dek,e)}catch(x){m={id:'(tidak dapat dibaca)',nama:'',role:'?'}}U.push({e,m})}NEW=[]}
-window.bgAdmin=async()=>{if(BG.role!=='admin')return;if(!U)await load();render()};
+window.bgAdmin=async()=>{if(BG.role!=='admin')return;await fbConf();if(!U)await load();render()};
 function render(){const me=normId(BG.meta.id);
   box(`<h3>Pengurusan pengguna</h3>
-  <p style="font-size:13px;margin:0 0 8px;color:var(--muted)">Tambah, padam atau tukar ID dan kata laluan. Perubahan hanya berkuat kuasa selepas fail <b>keys.json</b> baharu dimuat naik ke GitHub.</p>
+  <p style="font-size:13px;margin:0 0 8px;color:var(--muted)">Tambah, padam atau tukar ID dan kata laluan. ${FBC?'Perubahan disimpan terus ke Firebase dan berkuat kuasa serta-merta.':'Perubahan hanya berkuat kuasa selepas fail <b>keys.json</b> baharu dimuat naik ke GitHub.'}</p>
   ${U.map((u,i)=>`<div class="cpl"><span><b>${esc(u.m.id)}</b>${u.m.nama?' · '+esc(u.m.nama):''} <span class="zb" style="background:${u.m.role==='admin'?'#b08a3e':'#1f5a3d'}">${u.m.role==='admin'?'Admin':'Pengguna'}</span>${u.dirty?' <i style="color:#c25b14">· diubah</i>':''}</span>
     <span style="white-space:nowrap"><button data-ed="${i}" style="color:var(--leaf)">Ubah</button>${normId(u.m.id)===me?'':`<button data-del="${i}">Padam</button>`}</span></div>`).join('')}
   <div class="btns"><button class="btn p" data-a="add">+ Pengguna baharu</button><button class="btn" data-a="close">Tutup</button></div>
-  <button class="btn p" style="width:100%;margin-top:8px;background:#b08a3e;color:#12301f" data-a="save">Jana keys.json${NEW.length||U.some(u=>u.dirty)||U.removed?' (ada perubahan)':''}</button>
+  <button class="btn p" style="width:100%;margin-top:8px;background:#b08a3e;color:#12301f" data-a="save">${FBC?'💾 Simpan perubahan':'Jana keys.json'}${NEW.length||U.some(u=>u.dirty)||U.removed?' (ada perubahan)':''}</button>
   <details style="margin-top:12px;font-size:13px"><summary style="cursor:pointer;color:var(--muted)">Lanjutan: sekat penuh</summary>
   <p style="margin:6px 0">Memadam pengguna menghalang log masuk baharu. Tetapi telefon yang pernah membuka aplikasi masih menyimpan kunci data. Untuk menyekat sepenuhnya, tukar kunci data: semua pengguna akan diberi kata laluan baharu dan perlu log masuk semula.</p>
   <button class="btn" style="width:100%;color:#b23c17" data-a="rekey">Tukar kunci data &amp; semua kata laluan</button></details>`);
@@ -407,7 +437,13 @@ function dl(name,text){try{const a=document.createElement('a');a.href=URL.create
 function cp(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>tst('Disalin'),()=>tst('Salin secara manual'))}
 function creds(){return NEW.length?`<h4 style="margin:12px 0 4px">Maklumat log masuk untuk diedarkan</h4><p style="font-size:12px;color:#b23c17;margin:0 0 6px">Kata laluan hanya dipaparkan sekali. Salin dan hantar kepada setiap pengguna secara peribadi.</p>
   <textarea id="cr" readonly style="height:${40+NEW.length*20}px">${esc(NEW.map(n=>`${n.nama||n.id} (${n.role==='admin'?'Admin':'Pengguna'})\nID: ${n.id}\nKata laluan: ${n.pw}\n`).join('\n'))}</textarea><button class="btn" style="width:100%;margin-top:6px" onclick="(${cp.toString()})(document.getElementById('cr').value)">Salin maklumat log masuk</button>`:''}
-function save(){const json=JSON.stringify({v:2,updated:new Date().toISOString(),users:U.map(u=>u.e)});BG.lastKeys=json;
+async function save(){const json=JSON.stringify({v:2,updated:new Date().toISOString(),users:U.map(u=>u.e)});BG.lastKeys=json;
+  if(await fbConf()){try{await fbSave(json);U.forEach(u=>u.dirty=false);U.removed=false;
+      box(`<h3>✓ Disimpan terus</h3><p style="font-size:13.5px">Senarai pengguna telah dikemas kini dalam Firebase dan <b>berkuat kuasa serta-merta</b> untuk semua pengguna. Tiada muat naik ke GitHub diperlukan.</p>${creds()}<button class="btn p" style="width:100%;margin-top:10px" id="sBk">← Kembali</button>`);
+      $('sBk').onclick=()=>{NEW=[];render()};return}
+    catch(x){if(x.message==='batal')return;tst('Gagal simpan ke Firebase: '+x.message+'. Guna muat turun.')}}
+  saveFile(json)}
+function saveFile(json){
   box(`<h3>keys.json baharu sedia</h3>
   <ol style="font-size:13px;padding-left:18px;margin:0 0 8px"><li>Tekan <b>Muat turun keys.json</b> (atau Salin).</li>
   <li>Di GitHub, buka repo <b>bukitgoh-lot</b> → fail <b>keys.json</b> → ikon ✏️ <b>Edit</b> → padam semua → tampal → <b>Commit changes</b>. Atau ganti fail dalam folder repo melalui GitHub Desktop → Commit → Push.</li>
