@@ -1,5 +1,5 @@
-const V='bg-lot-d45eb7e3af';
-const SHELL=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png','data.txt','keys.json','logo.jpg'];
+const V='bg-lot-2fec09c9bf';
+const SHELL=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png','data.txt','keys.json','logo.jpg','sat.txt'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>Promise.allSettled(SHELL.map(u=>c.add(u)))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==location.origin)return;

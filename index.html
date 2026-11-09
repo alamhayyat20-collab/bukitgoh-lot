@@ -95,6 +95,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .sibs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .sibs button{border:1px solid var(--gold);background:none;border-radius:99px;padding:3px 10px;font-size:12.5px;font-weight:700}
 #zoomc{position:fixed;right:10px;z-index:20;display:flex;flex-direction:column;gap:6px}
+#zoomc #lay.on{background:#1f5a3d;color:#fff}
 #zoomc button{width:40px;height:40px;border-radius:10px;border:0;background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:20px;font-weight:700}
 #calbar{position:fixed;left:10px;right:60px;z-index:22;background:#e91e63;color:#fff;border-radius:10px;padding:8px 12px;font-size:13px;display:none;box-shadow:0 2px 10px rgba(0,0,0,.25)}
 #calbar b{display:block}
@@ -160,7 +161,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   <div id="tabs"><button data-v="peta" class="on">🗺 Peta</button><button data-v="sum">📊 Ringkasan</button><button data-v="info">📢 Info<span class="bd" id="infobd" hidden></span></button></div>
 </div>
 <div id="calbar"><b>Mod kalibrasi</b>Ketik satu titik yang dikenali pada pelan (cth. simpang jalan, sudut lot), kemudian masukkan koordinat GPS titik itu. <u id="calDone">Selesai</u></div>
-<div id="zoomc"><button id="zin">+</button><button id="zout">−</button><button id="zfit" style="font-size:14px">⤢</button></div>
+<div id="zoomc"><button id="lay" title="Lapisan satelit" style="font-size:18px">🛰</button><button id="zin">+</button><button id="zout">−</button><button id="zfit" style="font-size:14px">⤢</button></div>
 <div id="sheet"><div id="grab"><div id="stat"></div><button id="tog">Kecilkan</button></div><div id="body"></div></div>
 <div id="dlg"><div class="box" id="dlgbox"></div></div>
 <div id="toast"></div>
@@ -168,14 +169,16 @@ button{font:inherit;color:inherit;cursor:pointer}
 <div id="ann"><button class="x" id="annx">×</button><b>📌 PENGUMUMAN</b><span id="annt"></span></div>
 <script>
 function start(P){
-const W=P.W,H=P.H,S=P.S;
+let W=P.W,H=P.H;const S=P.S;
 const ZN={1:'Utara',2:'Timur (Jabor)',3:'Tengah',4:'Barat Daya (Bukit Kuin)',5:'Barat Laut'};
 const ZC={1:'#c0392b',2:'#1f6fb2',3:'#7d3c98',4:'#1e8449',5:'#b9770e'};
 const WN=['-','Biru','Kuning','Hijau','Merah jambu'];
 const RAW=P.lots;            // [lot,nama,zon,warna,felda,x,y]
 const ZONES=P.zones;
 const BAKED_CAL=P.cal;
-const L=RAW.map(r=>({lot:r[0],nama:r[1],zon:r[2],warna:r[3],felda:!!r[4],x:r[5]*S,y:r[6]*S,blok:r[7]||'',fasa:r[8]||''}));
+const L=RAW.map(r=>({lot:r[0],nama:r[1],zon:r[2],warna:r[3],felda:!!r[4],x:r[5]*S,y:r[6]*S,blok:r[7]||'',fasa:r[8]||'',dmg:r[9]==null?-1:r[9],ll:r[10]||null}));
+const dmgN=p=>p>=15?'Teruk':p>=5?'Sederhana':p>=1?'Ringan':'Tiada / minimum';
+const dmgC=p=>p>=15?'#c62828':p>=5?'#ef6c00':p>=1?'#c9a400':'#5a6a60';
 const STS=['Belum mula','Ukur & data','Pelan diluluskan','Bebas','Pulih','Tanam','Serah'];
 const STC=['#9aa69f','#5b84b1','#7d3c98','#c25b14','#b9770e','#1e8449','#12301f'];
 const FC={A:'#c0392b',B:'#d68910',C:'#1f6fb2',D:'#1e8449'};
@@ -191,14 +194,16 @@ function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localSto
 function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2200)}
 // ---------- zon svg ----------
 const zs=$('zsvg');zs.setAttribute('width',W);zs.setAttribute('height',H);zs.setAttribute('viewBox',`0 0 ${W} ${H}`);
-zs.innerHTML=Object.entries(ZONES).map(([z,p])=>`<polygon points="${p.map(q=>q[0]*S+','+q[1]*S).join(' ')}" fill="${ZC[z]}" fill-opacity=".05" stroke="${ZC[z]}" stroke-width="3" stroke-dasharray="14 8" vector-effect="non-scaling-stroke"/>`).join('')+
-Object.entries(ZONES).map(([z,p])=>{const lab={1:[1260,130],2:[1810,830],3:[1180,1000],4:[330,1340],5:[470,290]}[z];return ''}).join('');
+let ZD={z:ZONES,s:S};
+function drawZones(){zs.setAttribute('width',W);zs.setAttribute('height',H);zs.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  zs.innerHTML=Object.entries(ZD.z).map(([z,p])=>`<polygon points="${p.map(q=>q[0]*ZD.s+','+q[1]*ZD.s).join(' ')}" fill="${ZC[z]}" fill-opacity=".05" stroke="${ZC[z]}" stroke-width="3" stroke-dasharray="14 8" vector-effect="non-scaling-stroke"/>`).join('')}
+drawZones();
 // ---------- pan/zoom ----------
 const map=$('map'),layer=$('layer'),marks=$('marks');
 let sc=1,tx=0,ty=0;
 function topH(){return $('top').offsetHeight}
 function apply(){layer.style.transform=`translate(${tx}px,${ty}px) scale(${sc})`;drawMarks()}
-function fit(){const w=map.clientWidth,h=map.clientHeight-topH()-80;sc=Math.min(w/W,h/H);tx=(w-W*sc)/2;ty=topH()+(h-H*sc)/2;apply()}
+function fit(){$('zoomc').style.top=(topH()+70)+'px';const w=map.clientWidth,h=map.clientHeight-topH()-80;sc=Math.min(w/W,h/H);tx=(w-W*sc)/2;ty=topH()+(h-H*sc)/2;apply()}
 function zoomAt(f,cx,cy){const ns=Math.max(minS(),Math.min(4,sc*f));tx=cx-(cx-tx)*ns/sc;ty=cy-(cy-ty)*ns/sc;sc=ns;apply()}
 function minS(){return Math.min(map.clientWidth/W,map.clientHeight/H)*0.6}
 function centerOn(x,y,s){sc=s||Math.max(sc,1.1);const w=map.clientWidth,h=map.clientHeight;const sheetH=$('sheet').classList.contains('min')?80:$('sheet').offsetHeight;
@@ -227,14 +232,14 @@ function drawMarks(){let h='';
   marks.innerHTML=h}
 marks.addEventListener('click',e=>{const m=e.target.closest('[data-lot]');if(m)select(byLot[m.dataset.lot])});
 // ---------- chips ----------
-const CH=[['Semua',0,''],['Zon 1',1,''],['Zon 2',2,''],['Zon 3',3,''],['Zon 4',4,''],['Zon 5',5,''],['Fasa A',0,'fA'],['Fasa B',0,'fB'],['Fasa C',0,'fC'],['Fasa D',0,'fD'],['Lot FELDA',0,'felda'],['Tiada nama',0,'none'],['Pegangan >1 lot',0,'multi']];
+const CH=[['Semua',0,''],['Zon 1',1,''],['Zon 2',2,''],['Zon 3',3,''],['Zon 4',4,''],['Zon 5',5,''],['Fasa A',0,'fA'],['Fasa B',0,'fB'],['Fasa C',0,'fC'],['Fasa D',0,'fD'],['Terjejas (satelit)',0,'dmg'],['Lot FELDA',0,'felda'],['Tiada nama',0,'none'],['Pegangan >1 lot',0,'multi']];
 $('chips').innerHTML=CH.map((c,i)=>`<button class="chip${i?'':' on'}" data-i="${i}">${c[0]}</button>`).join('');
 $('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const c=CH[+b.dataset.i];
   if(c[1]){zone=zone===c[1]?0:c[1];}else if(c[2]){cat=cat===c[2]?'':c[2]}else{zone=0;cat=''}
   [...$('chips').children].forEach((x,i)=>x.classList.toggle('on',i===0?!zone&&!cat:(CH[i][1]?CH[i][1]===zone:CH[i][2]===cat)));sel=null;search()};
 // ---------- search ----------
 function search(){const raw=$('q').value.trim();const q=norm(raw);const toks=q.split(' ').filter(Boolean);
-  results=L.filter(l=>(!zone||l.zon===zone)&&(!cat||(cat[0]==='f'&&cat.length===2?l.fasa===cat[1]:cat==='felda'?l.felda:cat==='none'?(!l.nama&&!l.felda):(l.nama&&byName[l.nama].length>1))));
+  results=L.filter(l=>(!zone||l.zon===zone)&&(!cat||(cat[0]==='f'&&cat.length===2?l.fasa===cat[1]:cat==='dmg'?l.dmg>=5:cat==='felda'?l.felda:cat==='none'?(!l.nama&&!l.felda):(l.nama&&byName[l.nama].length>1))));
   if(toks.length){const num=/^\d+$/.test(q.replace(/ /g,''));
     if(num){const d=q.replace(/ /g,'');results=results.filter(l=>l.lot.includes(d)).sort((a,b)=>(b.lot.startsWith(d))-(a.lot.startsWith(d))||a.lot.localeCompare(b.lot))}
     else{const fq=toks.includes('FELDA');results=results.filter(l=>toks.every(t=>l.key.split(' ').some(w=>w.startsWith(t)))||(fq&&l.felda&&toks.length===1)).sort((a,b)=>a.key.localeCompare(b.key)||a.lot.localeCompare(b.lot))}
@@ -252,10 +257,10 @@ function list(){sheetOpen(true);const n=results.length;const owners=new Set(resu
 $('body').addEventListener('click',e=>{const r=e.target.closest('[data-lot]');if(r)select(byLot[r.dataset.lot]);const b=e.target.closest('[data-act]');if(b)act(b.dataset.act)});
 // ---------- detail ----------
 function select(l){if(!l)return;sel=l;const sibs=l.nama?byName[l.nama]:[l];
-  const ll=geo(l.x,l.y);const ok=!!ll;
+  const ll=l.ll||geo(l.x,l.y);const ok=!!ll;
   $('stat').innerHTML=`<b style="color:var(--ink)">Lot ${l.lot}</b> · Zon ${l.zon}`;
   $('body').innerHTML=`<div class="det"><h2>Lot ${l.lot}</h2><div class="own">${ownerTxt(l)}</div>
-  <dl class="kv"><dt>Status</dt><dd>${stb(stOf(l))}${ST[l.lot]?`<small style="display:block;color:var(--muted)">${escH(ST[l.lot].by||"")} · ${ago(ST[l.lot].at)}${ST[l.lot].note?" · "+escH(ST[l.lot].note):""}</small>`:""}</dd><dt>Zon</dt><dd>${zb(l.zon)} ${ZN[l.zon]}</dd>${l.blok?`<dt>Blok · Fasa</dt><dd>${l.blok} · <span class="stb" style="background:${FC[l.fasa]}">Fasa ${l.fasa}</span> <small style="color:var(--muted)">(cadangan simulasi)</small></dd>`:""}<dt>Warna kawasan</dt><dd>${l.felda?'Jingga':WN[l.warna]}</dd>
+  <dl class="kv"><dt>Status</dt><dd>${stb(stOf(l))}${ST[l.lot]?`<small style="display:block;color:var(--muted)">${escH(ST[l.lot].by||"")} · ${ago(ST[l.lot].at)}${ST[l.lot].note?" · "+escH(ST[l.lot].note):""}</small>`:""}</dd><dt>Zon</dt><dd>${zb(l.zon)} ${ZN[l.zon]}</dd>${l.blok?`<dt>Blok · Fasa</dt><dd>${l.blok} · <span class="stb" style="background:${FC[l.fasa]}">Fasa ${l.fasa}</span> <small style="color:var(--muted)">(cadangan simulasi)</small></dd>`:""}${l.dmg>=0?`<dt>Tanah terdedah</dt><dd><span class="stb" style="background:${dmgC(l.dmg)}">${l.dmg}% · ${dmgN(l.dmg)}</span> <small style="color:var(--muted)">(analisis imej satelit)</small></dd>`:""}<dt>Warna kawasan</dt><dd>${l.felda?'Jingga':WN[l.warna]}</dd>
   ${l.nama?`<dt>Pegangan</dt><dd>${sibs.length>1?`${sibs.length} lot (gabungan pegangan 10 ekar)`:'1 lot'}</dd>`:''}
   ${ok?`<dt>Koordinat</dt><dd style="font-variant-numeric:tabular-nums">${ll[0].toFixed(6)}, ${ll[1].toFixed(6)}</dd>`:''}
   ${ok&&me&&me.ll?`<dt>Jarak dari anda</dt><dd>${fmtD(dist(me.ll,ll))}</dd>`:''}</dl>
@@ -263,13 +268,13 @@ function select(l){if(!l)return;sel=l;const sibs=l.nama?byName[l.nama]:[l];
   <div class="btns"><a class="btn p" ${ok?`href="https://www.google.com/maps/dir/?api=1&destination=${ll[0]},${ll[1]}&travelmode=driving" target="_blank" rel="noopener"`:'aria-disabled="true"'}>▶ Google Maps</a>
   <a class="btn w" ${ok?`href="https://waze.com/ul?ll=${ll[0]},${ll[1]}&navigate=yes" target="_blank" rel="noopener"`:'aria-disabled="true"'}>▶ Waze</a>
   ${canEdit()?`<button class="btn p" data-act="st" style="grid-column:1/-1;background:#b08a3e;color:#12301f">✎ Kemas kini status lot</button>`:""}<button class="btn" data-act="copy">Salin maklumat</button><button class="btn" data-act="back">← Senarai</button></div>
-  ${ok?(CAL.err>60?`<div class="note warn">Ketepatan kalibrasi ±${Math.round(CAL.err)} m. Tambah titik kalibrasi untuk navigasi lebih tepat.</div>`:`<div class="note">Navigasi ke titik label lot pada pelan (anggaran ±${Math.max(10,Math.round(CAL.err||0))} m). Sahkan sempadan di lapangan.</div>`)
+  ${ok?(CAL.err>60?`<div class="note warn">Ketepatan kalibrasi ±${Math.round(CAL.err)} m. Tambah titik kalibrasi untuk navigasi lebih tepat.</div>`:`<div class="note">Navigasi ke titik dalam lot berdasarkan imej satelit (anggaran ±20 m). Sahkan sempadan dengan batu sempadan di lapangan.</div>`)
    :`<div class="note warn"><b>Navigasi GPS belum aktif.</b> Pelan ini belum dikalibrasi dengan koordinat GPS. Tekan ⚙ dan tandakan sekurang-kurangnya 3 titik yang dikenali. <a href="https://www.google.com/maps/search/?api=1&query=FELDA+Bukit+Goh+Kuantan" target="_blank" rel="noopener">Navigasi ke Perkampungan FELDA Bukit Goh</a></div>`}
   </div>`;
   sheetOpen(true);centerOn(l.x,l.y,Math.max(sc,1.2))}
 function act(a){if(a==='back'){sel=null;list();return}
   if(a==='st'&&sel){stDlg(sel);return}
-  if(a==='copy'&&sel){const ll=geo(sel.x,sel.y);const t=`Lot ${sel.lot} · ${sel.felda?'FELDA':(sel.nama||'-')} · Zon ${sel.zon} ${ZN[sel.zon]}`+(ll?` · https://www.google.com/maps?q=${ll[0].toFixed(6)},${ll[1].toFixed(6)}`:'');
+  if(a==='copy'&&sel){const ll=sel.ll||geo(sel.x,sel.y);const t=`Lot ${sel.lot} · ${sel.felda?'FELDA':(sel.nama||'-')} · Zon ${sel.zon} ${ZN[sel.zon]}`+(ll?` · https://www.google.com/maps?q=${ll[0].toFixed(6)},${ll[1].toFixed(6)}`:'');
     (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Disalin'),()=>prompt('Salin:',t))}}
 function sheetOpen(o){$('sheet').classList.toggle('min',!o);$('tog').textContent=o?'Kecilkan':'Senarai'}
 $('tog').onclick=()=>sheetOpen($('sheet').classList.contains('min'));
@@ -288,6 +293,20 @@ function ungeo(lat,lng){if(!CAL.A)return null;const[a,b]=CAL.A;const d=a[0]*b[1]
 function dist(p,q){const R=6371000,r=Math.PI/180,dl=(q[0]-p[0])*r,dg=(q[1]-p[1])*r;const h=Math.sin(dl/2)**2+Math.cos(p[0]*r)*Math.cos(q[0]*r)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 const fmtD=m=>m<1000?Math.round(m)+' m':(m/1000).toFixed(2)+' km';
 fitCal();
+// ---------- lapisan satelit ----------
+let LAYER='pelan';const BASE={W,H,img:null,cal:CAL};L.forEach(l=>{l.bx=l.x;l.by=l.y});
+async function setLayer(v){
+  if(v==='sat'){if(!window.bgSat){toast('Lapisan satelit tidak tersedia');return}
+    toast('Memuatkan imej satelit…');let d;try{d=await window.bgSat()}catch(e){toast('Gagal memuat: '+e.message);return}
+    if(!BASE.img)BASE.img=$('img').getAttribute('src');BASE.cal=CAL;
+    W=d.W;H=d.H;L.forEach(l=>{const p=d.pos[l.lot];l.x=p?p[0]:-9999;l.y=p?p[1]:-9999});ZD={z:d.zones,s:1};
+    CAL={pts:d.cal.map(a=>({x:a[0],y:a[1],lat:a[2],lng:a[3],n:a[4]}))};$('img').src=d.img}
+  else{W=BASE.W;H=BASE.H;L.forEach(l=>{l.x=l.bx;l.y=l.by});ZD={z:ZONES,s:S};CAL=BASE.cal;if(BASE.img)$('img').src=BASE.img}
+  LAYER=v;fitCal();if(v==='sat')CAL.err=20;drawZones();if(me&&me.ll)me.xy=ungeo(me.ll[0],me.ll[1]);$('lay').classList.toggle('on',v==='sat');
+  try{localStorage.setItem('bg_layer',v)}catch(e){}
+  if(sel)select(sel);else{fit();drawMarks()}}
+$('lay').onclick=()=>setLayer(LAYER==='sat'?'pelan':'sat');
+setTimeout(()=>{let v=null;try{v=localStorage.getItem('bg_layer')}catch(e){}if(v==='sat')setLayer('sat')},300);
 // ---------- GPS ----------
 let watch=null;
 $('gpsBtn').onclick=()=>{if(!navigator.geolocation){toast('GPS tidak disokong');return}
@@ -304,7 +323,7 @@ function tap(cx,cy){if(cy<topH())return;if(calMode){const[x,y]=toImg(cx,cy);if(x
 function dlg(html){$('dlgbox').innerHTML=html;$('dlg').style.display='flex'}
 function closeDlg(){$('dlg').style.display='none'}
 $('dlg').onclick=e=>{if(e.target.id==='dlg')closeDlg()};
-function save(){fitCal();store('bg_cal',JSON.stringify({pts:CAL.pts}));if(me)me.xy=ungeo(me.ll[0],me.ll[1]);drawMarks()}
+function save(){fitCal();if(LAYER!=='sat')store('bg_cal',JSON.stringify({pts:CAL.pts}));if(me)me.xy=ungeo(me.ll[0],me.ll[1]);drawMarks()}
 function calMenu(){const p=CAL.pts;dlg(`<h3>Kalibrasi GPS pelan</h3>
   <p style="font-size:13.5px;margin:0 0 8px">Pelan asal tiada koordinat GPS. Tandakan <b>sekurang-kurangnya 3 titik</b> (lebih baik 4–6, berselerak di seluruh kawasan) yang anda tahu koordinatnya, cth. simpang jalan, jambatan, sudut lot. Koordinat boleh disalin dari Google Maps (tekan lama pada peta) atau guna GPS telefon semasa berdiri di titik itu.</p>
   <div style="margin:8px 0">${p.length?p.map((q,i)=>`<div class="cpl"><span><b>${i+1}.</b> ${q.lat.toFixed(6)}, ${q.lng.toFixed(6)}${q.n?' · '+q.n:''}</span><button data-del="${i}">Padam</button></div>`).join(''):'<div class="cpl">Belum ada titik.</div>'}</div>
@@ -500,6 +519,12 @@ async function fbSave(json){const c=await fbConf();const tok=await fbLogin();
     body:JSON.stringify({fields:{json:{stringValue:json},updated:{timestampValue:new Date().toISOString()}}})});
   if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401||r.status===403)BG.fbTok=null;throw new Error((d.error&&d.error.message)||('HTTP '+r.status))}
   lsPut(JSON.parse(json));BG.keys=JSON.parse(json)}
+let SATP=null;
+window.bgSat=async()=>{if(SATP)return SATP;if(!window.BG)throw new Error('belum log masuk');
+  const r=await fetch('sat.txt');if(!r.ok)throw new Error('sat.txt ('+r.status+')');const buf=ub64((await r.text()).trim());
+  if(td.decode(buf.slice(0,4))!=='BG02')throw new Error('format');const pt=await dec(BG.dek,buf.slice(4));
+  const n=new DataView(pt.buffer).getUint32(0);const m=JSON.parse(td.decode(pt.slice(4,4+n)));
+  m.img=URL.createObjectURL(new Blob([pt.slice(4+n)],{type:'image/jpeg'}));SATP=m;return m};
 let BUF=null;
 async function getData(){if(BUF)return BUF;const r=await fetch('data.txt');if(!r.ok)throw new Error('Data tidak dapat dimuat ('+r.status+')');
   BUF=ub64((await r.text()).trim());if(td.decode(BUF.slice(0,4))!=='BG02')throw new Error('Fail data versi lama. Muat naik data.txt terkini.');return BUF}
